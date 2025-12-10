@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>All-in-One Interactive JavaScript Website</title>
+
+<!-- ===========================
+     Styles (internal for single-file deliverable)
+     =========================== -->
+<style>
+  :root{
+    --accent1: #6a5acd;
+    --accent2: #00bfff;
+    --bg: #f5f7fb;
+    --card: #ffffff;
+    --text: #111827;
+    --muted: #6b7280;
+    --success: #16a34a;
+    --danger: #dc2626;
+    --glass: rgba(255,255,255,0.6);
+  }
+
+  /* Dark theme variables (applied via .dark class) */
+  .dark {
+    --bg: #0b1020;
+    --card: #0f1724;
+    --text: #e6eef8;
+    --muted: #94a3b8;
+    --glass: rgba(255,255,255,0.03);
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: radial-gradient(circle at 10% 10%, rgba(106,90,205,0.06), transparent 20%),
+                radial-gradient(circle at 90% 90%, rgba(0,191,255,0.04), transparent 20%),
+                var(--bg);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    transition: background 350ms ease, color 350ms ease;
+    overflow-y:scroll;
+  }
+
+  /* Loading overlay */
+  #loader{
+    position:fixed;
+    inset:0;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+    color:white;
+    flex-direction:column;
+    gap:14px;
+  }
+  #loader .logo{
+    width:96px;height:96px;border-radius:16px;
+    background:linear-gradient(45deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;
+    box-shadow:0 8px 30px rgba(0,0,0,0.15);
+    animation: float 2.6s ease-in-out infinite;
+  }
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+
+  /* Page container */
+  .wrap{max-width:1100px;margin:28px auto;padding:18px;}
+
+/* Header */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:18px;
+  }
+  .brand{
+    display:flex;gap:12px;align-items:center;
+  }
+  .brand .icon{
+    width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;box-shadow:0 6px 18px rgba(0,0,0,0.12);
+  }
+  h1{font-size:20px;margin:0}
+  p.lead{margin:0;font-size:13px;color:var(--muted)}
+
+  /* Top controls */
+  .controls{display:flex;gap:8px;align-items:center}
+  .btn{
+    display:inline-flex;gap:8px;align-items:center;padding:8px 12px;border-radius:10px;border:none;cursor:pointer;
+    background:linear-gradient(90deg,var(--accent1),var(--accent2)); color:white; font-weight:600;
+    box-shadow:0 6px 18px rgba(0,0,0,0.08); transition:transform .18s ease, box-shadow .18s ease, opacity .18s;
+  }
+  .btn:active{transform:translateY(1px)}
+  .ghost{background:transparent;color:var(--text);border:1px solid rgba(0,0,0,0.06)}
+  .small{padding:6px 10px;font-size:13px;border-radius:8px}
+
+  /* Layout columns */
+  .grid{
+    display:grid;
+    grid-template-columns: 1fr 360px;
+    gap:18px;
+    align-items:start;
+  }
+  @media (max-width:980px){ .grid{grid-template-columns:1fr} }
+
+  /* Cards */
+  .card{
+    background:var(--card); border-radius:12px; padding:18px; box-shadow:0 8px 30px rgba(2,6,23,0.06);
+    transition: transform .22s ease, box-shadow .22s ease;
+  }
+  .card:hover{ transform: translateY(-6px); box-shadow:0 18px 40px rgba(2,6,23,0.09); }
+
+  .card h2{margin:0 0 8px 0;font-size:16px}
+  .muted{color:var(--muted);font-size:13px;margin-top:6px}
+
+  /* menu slide */
+  #sideMenu{
+    position:fixed;right:-320px;top:0;height:100%;width:320px;background:var(--card);box-shadow:-12px 0 40px rgba(0,0,0,0.12);
+    z-index:900;transition:right .36s cubic-bezier(.2,.9,.3,1);padding:20px;border-left:1px solid rgba(0,0,0,0.02);
+  }
+  #sideMenu.open{ right:0; }
+  #sideMenu h3{margin-top:0}
+  .menu-item{padding:10px;border-radius:8px;display:flex;align-items:center;gap:10px;cursor:pointer}
+  .menu-item:hover{background:linear-gradient(90deg, rgba(0,0,0,0.03), transparent)}
+
+  /* greeting */
+  .greet{display:flex;align-items:center;gap:12px}
+  .clock{font-weight:700;font-size:14px}
+
+  /* Form */
+  form .row{display:flex;gap:10px;flex-wrap:wrap}
+  label{display:block;font-size:13px;margin-top:8px}
+  input[type="text"], input[type="email"], input[type="password"], textarea, input[type="number"]{
+    width:100%;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:linear-gradient(var(--glass),var(--glass));
+    color:var(--text);
+    transition:box-shadow .18s;
+  }
+  input:focus, textarea:focus{outline:none;box-shadow:0 6px 18px rgba(0,0,0,0.06);}
+
+  .field-help{font-size:12px;color:var(--muted)}
+  .error{color:var(--danger);font-weight:600}
+  .success{color:var(--success);font-weight:700}
+
+  /* slideshow */
+  .slideshow{position:relative;overflow:hidden;border-radius:10px}
+  .slides{display:flex;transition:transform .5s ease}
+  .slide{min-width:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:14px}
+  .slide img{max-width:100%;height:auto;border-radius:8px;cursor:zoom-in;box-shadow:0 10px 30px rgba(2,6,23,0.08)}
+  .slide p{margin-top:8px;color:var(--muted)}
+  .sl-controls{display:flex;gap:8px;margin-top:10px}
+  .dotbar{display:flex;gap:6px;align-items:center;justify-content:center;margin-top:8px}
+  .dot{width:10px;height:10px;border-radius:6px;background:rgba(0,0,0,0.12);cursor:pointer}
+  .dot.active{background:linear-gradient(90deg,var(--accent1),var(--accent2))}
+
+  /* modal for image */
+  #modal{
+    position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);z-index:999;
+  }
+  #modal.open{display:flex}
+  #modal img{max-width:90%;max-height:80%;border-radius:10px;box-shadow:0 30px 80px rgba(0,0,0,0.6)}
+
+  /* calculator */
+  .calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .calc-display{padding:10px;border-radius:8px;background:linear-gradient(var(--glass),var(--glass));text-align:right;font-weight:700}
+
+  /* toast */
+  #toasts{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:10px;z-index:10000}
+  .toast{background:var(--card);padding:12px 14px;border-radius:10px;box-shadow:0 10px 30px rgba(2,6,23,0.08);display:flex;gap:10px;align-items:center;min-width:220px}
+
+  /* footer */
+  footer{margin-top:28px;padding:18px;text-align:center;color:var(--muted);font-size:13px}
+
+  /* small helpers */
+  .flex{display:flex;gap:10px;align-items:center}
+  .space-between{display:flex;justify-content:space-between;align-items:center}
+  .right{margin-left:auto}
+  .kbd{background:#111827;color:white;padding:4px 8px;border-radius:6px;font-size:12px}
+
+  /* transitions */
+  .fade-in{opacity:0;transform:translateY(8px);animation:fadeUp .5s forwards}
+  @keyframes fadeUp{to{opacity:1;transform:none}}
+
+</style>
+</head>
+<body>
+
+<!-- =========================
+    Loading screen
+   ========================= -->
+<div id="loader" aria-hidden="false">
+  <div class="logo">AI</div>
+  <div style="font-weight:700;font-size:18px">Interactive Demo</div>
+  <div style="opacity:.95">Preparing features…</div>
+</div>
+
+<!-- =========================
+    Slide-in Side Menu
+   ========================= -->
+<div id="sideMenu" aria-hidden="true" role="navigation">
+  <h3>Quick Menu</h3>
+  <div class="menu-item" data-scroll="#top">🏠 Home</div>
+  <div class="menu-item" data-scroll="#features">✨ Features</div>
+  <div class="menu-item" data-scroll="#gallery">🖼 Gallery</div>
+  <div class="menu-item" data-scroll="#contact">✉️ Contact</div>
+  <hr>
+  <div style="font-size:13px;color:var(--muted)">Built for the assignment • Single-page interactive demo</div>
+</div>
+
+<!-- =========================
+    Image Modal (click-to-enlarge)
+   ========================= -->
+<div id="modal" role="dialog" aria-modal="true" aria-hidden="true">
+  <img src="" alt="Enlarged image" />
+</div>
+
+<!-- Toast container -->
+<div id="toasts" aria-live="polite"></div>
+
+<!-- =========================
+    Main content
+   ========================= -->
+<main class="wrap" id="top">
+
+  <header class="space-between fade-in" style="gap:16px">
+    <div class="brand">
+      <div class="icon">JS</div>
+      <div>
+        <h1>Interactive JS Single-Page</h1>
+        <p class="lead"> polished UI • animations • accessibility-minded</p>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="greet">
+        <div id="greetingText" style="font-size:14px">Hello!</div>
+        <div class="clock" id="clock">00:00:00</div>
+      </div>
+      <button class="btn small" id="openMenuBtn" aria-expanded="false">☰ Menu</button>
+      <button class="btn small ghost" id="themeToggle" title="Toggle theme">🌗 Theme</button>
+    </div>
+  </header>
+
+  <div class="grid" id="features">
+
+    <!-- Left column: main features -->
+    <section>
+
+      <!-- Hero / intro card -->
+      <div class="card fade-in" style="margin-bottom:14px">
+        <h2>Welcome — Explore the interactive features</h2>
+        <p class="muted">This single page demonstrates many JS features required by the assignment: validation, slideshow, calculator, theme, accessibility, animations and more.</p>
+      </div>
+
+      <!-- Slideshow gallery -->
+      <div class="card slideshow fade-in" id="gallery" style="margin-bottom:14px">
+        <h2>Image Slideshow</h2>
+        <div class="slides" id="slidesWrap" aria-live="polite">
+          <!-- slides: using placeholders; replace with real images if desired -->
+          <div class="slide">
+            <img src="https://via.placeholder.com/800x420.png?text=Mountain+View" alt="Mountain view">
+            <p class="muted">Mountain view • Click to enlarge</p>
+          </div>
+          <div class="slide">
+            <img src="https://via.placeholder.com/800x420.png?text=City+Lights" alt="City lights">
+            <p class="muted">City lights • Click to enlarge</p>
+          </div>
+          <div class="slide">
+            <img src="https://via.placeholder.com/800x420.png?text=Ocean+Waves" alt="Ocean waves">
+            <p class="muted">Ocean waves • Click to enlarge</p>
+          </div>
+        </div>
+
+        <div class="sl-controls">
+          <button class="btn small" id="prevSlide">◀ Prev</button>
+          <button class="btn small" id="playPause">⏯ Play</button>
+          <button class="btn small" id="nextSlide">Next ▶</button>
+          <div style="margin-left:auto" class="field-help">Autoplay every 3s • hover to pause</div>
+        </div>
+        <div class="dotbar" id="dotbar"></div>
+      </div>
+
+      <!-- Form with char counter -->
+      <div class="card fade-in" style="margin-bottom:14px">
+        <h2>Sign Up Form</h2>
+
+        <form id="signup" novalidate>
+          <div class="row">
+            <div style="flex:1">
+              <label for="name">Full name</label>
+              <input id="name" name="name" type="text" placeholder="Jane Doe" required minlength="2" />
+              <div id="nameHelp" class="field-help">At least 2 characters</div>
+            </div>
+            <div style="width:220px">
+              <label for="age">Age</label>
+              <input id="age" name="age" type="number" min="10" max="120" placeholder="18" />
+              <div class="field-help">Optional</div>
+            </div>
+          </div>
+
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" placeholder="jane@example.com" required />
+          <div id="emailHelp" class="field-help">We'll never share your email</div>
+
+          <label for="message">About you <span class="field-help">(max 250)</span></label>
+          <textarea id="message" name="message" rows="4" maxlength="250" placeholder="Tell us a bit..." ></textarea>
+          <div class="space-between" style="margin-top:6px">
+            <div id="charCount" class="field-help">0 / 250</div>
+            <div id="formStatus" class="field-help"></div>
+          </div>
+
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <button type="submit" class="btn">Submit</button>
+            <button type="button" id="clearForm" class="btn ghost">Clear</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Calculator -->
+      <div class="card fade-in" style="margin-bottom:14px">
+        <h2>Calculator</h2>
+        <div class="calc-display" id="calcDisplay">0</div>
+        <div style="margin-top:10px" class="calc-grid">
+          <button class="btn small" data-calc="7">7</button>
+          <button class="btn small" data-calc="8">8</button>
+          <button class="btn small" data-calc="9">9</button>
+          <button class="btn small ghost" data-op="/">÷</button>
+
+          <button class="btn small" data-calc="4">4</button>
+          <button class="btn small" data-calc="5">5</button>
+          <button class="btn small" data-calc="6">6</button>
+          <button class="btn small ghost" data-op="*">×</button>
+
+          <button class="btn small" data-calc="1">1</button>
+          <button class="btn small" data-calc="2">2</button>
+          <button class="btn small" data-calc="3">3</button>
+          <button class="btn small ghost" data-op="-">−</button>
+
+          <button class="btn small" data-calc="0">0</button>
+          <button class="btn small" data-calc=".">.</button>
+          <button class="btn small" id="powBtn" title="Power (xⁿ)">xⁿ</button>
+          <button class="btn small ghost" data-op="+">+</button>
+
+          <button class="btn small ghost" id="clearCalc">C</button>
+          <button class="btn small ghost" id="equals">=</button>
+        </div>
+        <div class="muted" style="margin-top:8px">Keyboard: type numbers and operators, Enter for equals</div>
+      </div>
+
+      <!-- Popups & Extra -->
+      <div class="card fade-in" style="margin-bottom:14px">
+        <h2>Pop-ups, Toasts & Sounds</h2>
+        <div class="flex" style="margin-bottom:10px">
+          <button class="btn" id="toastBtn">Show Toast</button>
+          <button class="btn ghost" id="soundBtn">Play Tone</button>
+          <button class="btn ghost" id="notifyBtn">Browser Notification</button>
+        </div>
+        <p class="muted">Toasts appear bottom-right. Sounds use WebAudio (no download). Notifications require user permission.</p>
+      </div>
+
+    </section>
+
+    <!-- Right column: side content -->
+    <aside>
+      <div class="card fade-in">
+        <h2>Theme & Quick Actions</h2>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <button class="btn" id="quickDark">Enable Dark</button>
+          <button class="btn ghost" id="quickLight">Light</button>
+        </div>
+        <div style="margin-top:12px">
+          <button class="btn small" id="showHide">Show / Hide Gallery</button>
+        </div>
+        <div class="muted" style="margin-top:12px">Try toggling theme and hiding sections to test show/hide interactivity.</div>
+      </div>
+
+      <div class="card fade-in" style="margin-top:12px">
+        <h2>Live Clock & Greeting</h2>
+        <div style="font-size:20px;font-weight:700" id="clockLarge">00:00:00</div>
+        <div class="muted" style="margin-top:8px" id="greetLarge">Good day!</div>
+      </div>
+
+      <div class="card fade-in" style="margin-top:12px">
+        <h2>Contact</h2>
+        <p class="muted">Quick links & social</p>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <a class="btn small ghost" href="#" aria-label="Twitter">🐦</a>
+          <a class="btn small ghost" href="#" aria-label="LinkedIn">💼</a>
+          <a class="btn small ghost" href="#" aria-label="GitHub">🐙</a>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <footer id="contact">
+    <div class="muted">Made for the assignment • Interactive demo • <span id="year"></span></div>
+  </footer>
+
+</main>
+
+<!-- =========================
+    JavaScript (app logic)
+   ========================= -->
+<script>
+/* ======= Helper & Init ======= */
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const audioCtx = (typeof AudioContext !== 'undefined') ? new AudioContext() : null;
+
+function playTone(freq=440, duration=0.15, type='sine') {
+  if(!audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type; o.frequency.value = freq;
+  o.connect(g); g.connect(audioCtx.destination);
+  g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.01);
+  o.start();
+  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+  o.stop(audioCtx.currentTime + duration + 0.02);
+}
+
+/* ======= Loading Screen ======= */
+window.addEventListener('load', () => {
+  setTimeout(()=> {
+    const loader = $('#loader');
+    loader.style.transition = 'opacity .45s ease';
+    loader.style.opacity = '0';
+    setTimeout(()=> loader.remove(), 500);
+  }, 700); // short delay to show loader
+});
+
+/* ======= Side Menu Toggle ======= */
+const side = $('#sideMenu'), openMenuBtn = $('#openMenuBtn');
+openMenuBtn.addEventListener('click', ()=> {
+  const open = side.classList.toggle('open');
+  openMenuBtn.setAttribute('aria-expanded', open);
+  if(open) side.setAttribute('aria-hidden','false'); else side.setAttribute('aria-hidden','true');
+});
+side.addEventListener('click', e => {
+  const item = e.target.closest('.menu-item');
+  if(item && item.dataset.scroll) {
+    document.querySelector(item.dataset.scroll).scrollIntoView({behavior:'smooth', block:'start'});
+    side.classList.remove('open');
+  }
+});
+
+/* ======= Theme switcher & quick toggles ======= */
+const body = document.body;
+const themeToggle = $('#themeToggle');
+function setTheme(dark) {
+  if(dark) body.classList.add('dark');
+  else body.classList.remove('dark');
+  localStorage.setItem('isDark', dark ? '1' : '0');
+}
+themeToggle.addEventListener('click', ()=> {
+  setTheme(!body.classList.contains('dark'));
+  playTone(880,0.06);
+});
+$('#quickDark').addEventListener('click', ()=> setTheme(true));
+$('#quickLight').addEventListener('click', ()=> setTheme(false));
+window.addEventListener('DOMContentLoaded', ()=> {
+  if(localStorage.getItem('isDark') === '1') setTheme(true);
+});
+
+/* ======= Greeting & Live clock ======= */
+function updateTime() {
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+  const pad = n => String(n).padStart(2,'0');
+  $('#clock').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+  $('#clockLarge').textContent = $('#clock').textContent;
+  const greetText = h < 12 ? '🌅 Good Morning!' : (h < 18 ? '☀️ Good Afternoon!' : '🌙 Good Evening!');
+  $('#greetingText').textContent = greetText;
+  $('#greetLarge').textContent = greetText;
+}
+setInterval(updateTime, 1000);
+updateTime();
+
+/* ======= Toast notifications ======= */
+const toasts = $('#toasts');
+function showToast(text, duration=3500) {
+  const t = document.createElement('div'); t.className = 'toast';
+  t.innerHTML = `<div style="font-weight:700;opacity:.95">${text}</div>`;
+  toasts.appendChild(t);
+  setTimeout(()=> t.style.opacity = '1',20);
+  setTimeout(()=> {
+    t.style.transition = 'opacity .35s';
+    t.style.opacity = '0';
+    setTimeout(()=> t.remove(),350);
+  }, duration);
+}
+
+/* ======= Browser Notification helper ======= */
+$('#notifyBtn').addEventListener('click', async ()=> {
+  if(!("Notification" in window)) {
+    showToast('Notifications not supported');
+    return;
+  }
+  if(Notification.permission === 'granted') {
+    new Notification('Hello!', { body: 'Thanks for enabling notifications.' });
+  } else if(Notification.permission !== 'denied') {
+    const perm = await Notification.requestPermission();
+    if(perm === 'granted') new Notification('Hi there!', { body: 'You will get notifications.' });
+    else showToast('Notification permission denied');
+  } else {
+    showToast('Notifications blocked in browser settings');
+  }
+});
+
+/* ======= Toast & sound buttons ======= */
+$('#toastBtn').addEventListener('click', ()=> { showToast('This is a toast notification ✨'); playTone(660,0.08); });
+$('#soundBtn').addEventListener('click', ()=> playTone(440,0.12));
+
+/* ======= Show/Hide gallery ======= */
+$('#showHide').addEventListener('click', ()=> {
+  const gallery = $('#gallery');
+  if(gallery.style.display === 'none') { gallery.style.display='block'; showToast('Gallery shown'); }
+  else { gallery.style.display='none'; showToast('Gallery hidden'); }
+});
+
+/* ======= Slideshow (autoplay with pause on hover) ======= */
+const slidesWrap = $('#slidesWrap');
+const slides = $$('.slide');
+const dotbar = $('#dotbar');
+let current = 0, autoplay=true, timer=null;
+function updateSlides() {
+  slidesWrap.style.transform = `translateX(-${current*100}%)`;
+  // dots
+  dotbar.innerHTML = '';
+  slides.forEach((s,i)=>{
+    const d = document.createElement('div'); d.className='dot' + (i===current?' active':'');
+    d.addEventListener('click', ()=> { current=i; resetTimer(); updateSlides(); });
+    dotbar.appendChild(d);
+  });
+}
+function nextSlide() { current = (current + 1) % slides.length; updateSlides(); }
+function prevSlide() { current = (current - 1 + slides.length) % slides.length; updateSlides(); }
+function resetTimer() {
+  if(timer) clearInterval(timer);
+  if(autoplay) timer = setInterval(nextSlide, 3000);
+}
+$('#nextSlide').addEventListener('click', ()=> { nextSlide(); resetTimer(); });
+$('#prevSlide').addEventListener('click', ()=> { prevSlide(); resetTimer(); });
+$('#playPause').addEventListener('click', ()=> { autoplay = !autoplay; $('#playPause').textContent = autoplay ? '⏯ Play' : '⏸ Pause'; resetTimer(); });
+
+slidesWrap.addEventListener('mouseenter', ()=> { if(timer) clearInterval(timer); });
+slidesWrap.addEventListener('mouseleave', ()=> { resetTimer(); });
+updateSlides(); resetTimer();
+
+/* Click-to-enlarge: open modal when image clicked */
+slidesWrap.addEventListener('click', e => {
+  const img = e.target.closest('img');
+  if(!img) return;
+  $('#modal img').src = img.src;
+  $('#modal').classList.add('open');
+  $('#modal').setAttribute('aria-hidden','false');
+  playTone(880,0.06);
+});
+$('#modal').addEventListener('click', () => {
+  $('#modal').classList.remove('open');
+  $('#modal').setAttribute('aria-hidden','true');
+  $('#modal img').src = '';
+});
+
+/* ======= Form Validation & Character Counter ======= */
+const signup = $('#signup'), nameInput = $('#name'), emailInput = $('#email'), messageInput = $('#message'), charCount = $('#charCount'), formStatus = $('#formStatus');
+
+messageInput.addEventListener('input', ()=> {
+  charCount.textContent = `${messageInput.value.length} / ${messageInput.maxLength}`;
+});
+
+signup.addEventListener('submit', (ev)=> {
+  ev.preventDefault();
+  formStatus.textContent = '';
+  // basic validation
+  const name = nameInput.value.trim();
+  const email = emailInput.value.trim();
+  if(name.length < 2){ formStatus.className='error'; formStatus.textContent = 'Name too short'; playTone(330,0.12); return; }
+  if(!/^\S+@\S+\.\S+$/.test(email)){ formStatus.className='error'; formStatus.textContent = 'Email invalid'; playTone(220,0.12); return; }
+  // simulate submission
+  formStatus.className='success'; formStatus.textContent = 'Form submitted — thank you!';
+  showToast('Form submitted successfully ✅');
+  playTone(880,0.08);
+  signup.reset();
+  charCount.textContent = '0 / 250';
+});
+
+$('#clearForm').addEventListener('click', ()=> { signup.reset(); charCount.textContent='0 / 250'; formStatus.textContent=''; showToast('Form cleared'); });
+
+/* ======= Calculator logic (supports keyboard) ======= */
+const calcDisplay = $('#calcDisplay');
+let calcExpr = '';
+function updateCalc() { calcDisplay.textContent = calcExpr || '0'; }
+$$('[data-calc]').forEach(b => b.addEventListener('click', ()=> {
+  calcExpr += b.dataset.calc; updateCalc();
+}));
+$$('[data-op]').forEach(b => b.addEventListener('click', ()=> {
+  calcExpr += ` ${b.dataset.op} `; updateCalc();
+}));
+$('#clearCalc').addEventListener('click', ()=> { calcExpr=''; updateCalc(); playTone(300,0.06); });
+$('#equals').addEventListener('click', computeCalc);
+$('#powBtn').addEventListener('click', ()=> { calcExpr += ' ** '; updateCalc(); });
+
+function computeCalc() {
+  try {
+    // Use Function to avoid eval; still caution but good for demo (no user remote code)
+    const fn = new Function('return (' + calcExpr + ')');
+    const result = fn();
+    calcExpr = String(result);
+    updateCalc();
+    playTone(660,0.08);
+  } catch(e) {
+    calcDisplay.textContent = 'Error';
+    playTone(220,0.16);
+  }
+}
+
+// keyboard support
+window.addEventListener('keydown', (ev)=>{
+  const allowed = '0123456789.+-*/()';
+  if(allowed.includes(ev.key)) { calcExpr += ev.key; updateCalc(); }
+  else if(ev.key === 'Enter') computeCalc();
+  else if(ev.key === 'Backspace') { calcExpr = calcExpr.slice(0,-1); updateCalc(); }
+});
+
+/* ======= Simple accessibility: focus outlines for keyboard users ======= */
+document.addEventListener('keydown', e => {
+  if(e.key === 'Tab') document.body.classList.add('user-is-tabbing');
+});
+
+/* ======= Footer year ======= */
+$('#year').textContent = new Date().getFullYear();
+
+/* ======= small: clicking nav items to scroll smoothly (header menu items) ======= */
+$$('#sideMenu .menu-item').forEach(it => it.addEventListener('click', ()=> {
+  const t = it.dataset.scroll;
+  if(t) document.querySelector(t).scrollIntoView({behavior:'smooth'});
+}));
+
+/* ======= Simple tests & console info (for your assignment testing table) ======= */
+console.info('Interactive demo loaded — test features: form, slideshow, calculator, toast, theme, modal.');
+
+/* ======= Small progressive enhancement: resume audio context on first user gesture (mobile autoplay policy) ======= */
+['click','touchstart','keydown'].forEach(evt => {
+  window.addEventListener(evt, function resume() {
+    if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    window.removeEventListener(evt, resume);
+  });
+});
+
+</script>
+</body>
+</html>
